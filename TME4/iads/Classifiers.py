@@ -15,7 +15,7 @@ import pandas as pd
 import math
 
 # ---------------------------
-
+# code de la classe Classifier
 
 class Classifier:
     """ Classe pour représenter un classifieur
@@ -69,7 +69,7 @@ class Classifier:
     
     
 # ---------------------------
-
+# code de la classe Lineaire Random
 
 class ClassifierLineaireRandom(Classifier):
     """ Classe pour représenter un classifieur linéaire aléatoire
@@ -123,7 +123,7 @@ class ClassifierLineaireRandom(Classifier):
         
         
 # ---------------------------
-
+# code de la classe KNN
 
 class ClassifierKNN(Classifier):
     """ Classe pour représenter un classifieur par K plus proches voisins.
@@ -183,7 +183,7 @@ class ClassifierKNN(Classifier):
         
         
  # ---------------------------
-
+# code de la classe Perceptron
 
 class ClassifierPerceptron(Classifier):
     """ Perceptron de Rosenblatt
@@ -248,7 +248,7 @@ class ClassifierPerceptron(Classifier):
         
         
  # ---------------------------
-
+# code de la classe Perceptron Kernel
 
 class ClassifierPerceptronKernel(Classifier):
     """ Perceptron utilisant un kernel
@@ -286,6 +286,69 @@ class ClassifierPerceptronKernel(Classifier):
         
         
 # ------------------------ 
-    
+# code de la classe ADALINE Analytique
 
-       
+class ClassifierADALINE2(classif.Classifier):
+    """ Perceptron de ADALINE
+    """
+    #TODO: Classe à Compléter
+    def __init__(self, input_dimension):
+        """ Constructeur de Classifier
+            Argument:
+                - input_dimension (int) : dimension de la description des exemples
+                - learning_rate : epsilon
+                - history : stockage des poids w en cours d'apprentissage
+                - niter_max : borne sur les iterations
+            Hypothèse : input_dimension > 0
+        """
+        self.w = np.zeros(input_dimension)
+        self.input_dimension = input_dimension
+        
+    def train(self, desc_set, label_set):
+        """ Permet d'entrainer le modele sur l'ensemble donné
+            réalise une itération sur l'ensemble des données prises aléatoirement
+            desc_set: ndarray avec des descriptions
+            label_set: ndarray avec les labels correspondants
+            Hypothèse: desc_set et label_set ont le même nombre de lignes
+        """
+        
+        '''
+        # On crée la transposée de X et on réalise la multiplication de trX et X
+        trX = desc_set.transpose()
+        trX_X = np.dot(trX, desc_set)
+        
+        # On réalise la multiplication de trX et Y
+        trX_Y = np.dot(trX, label_set)
+        
+        # Inverse de la matrice trX_X
+        inv_trX_X = np.linalg.inv(trX_X)
+        
+        # Multiplication des deux matrices
+        self.w = np.dot(trX_Y, inv_trX_X)
+        '''
+        
+        # Utilisation de np.linalg.solve
+        trX = desc_set.transpose() # Création de la transposee de desc_set
+        trX_X = np.dot(trX, desc_set) # Produit factoriel de la transposee de desc_set et desc_set (élem. gauche)
+        trX_Y = np.dot(trX, label_set) # Produit factoriel entre desc_set et label_set (élem. droit)
+        
+        x = np.array([1,1]) # Matrice [x, y]
+        a = trX_X * x
+        self.w = np.linalg.solve(a, trX_Y)
+    
+    def score(self,x):
+        """ rend le score de prédiction sur x (valeur réelle)
+            x: une description
+        """
+        # Retour du score
+        return (self.w @ x)
+    
+    def predict(self, x):
+        """ rend la prediction sur x (soit -1 ou soit +1)
+            x: une description
+        """
+        # Retour de la prediction
+        if (self.score(x) < 0) :
+            return -1
+        else :
+            return 1
