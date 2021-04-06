@@ -164,93 +164,71 @@ def calculC(data_set, label_set, allW) :
 
 def crossval(X, Y, n_iterations, iteration):
     
-    # On itere sur n_iterations
-    for k in range(0, n_iterations) :
+    # Repartition
+    effRep = (len(Y) // n_iterations)
         
-        # Repartition et indice
-        rep = 1/n_iterations # Répartition = ppurcentage valeurs envoyées en apprentissage
-        effRep = (int)(len(X) * rep)
+    # Création des indices de test
+    indexTest = np.asarray([(i + iteration * effRep) for i in range(effRep)])
         
-        # Création des indices de test
-        indexTest = np.asarray([(i + k * effRep) for i in range(effRep)])
+    # Création des indices d'apprentissage
+    indexApp = list()
+    for i in range(len(X)) :
+        if (i not in indexTest) :
+            indexApp.append(i)
+    indexApp = np.array(indexApp)
         
-        # Création des indices d'apprentissage
-        indexApp = list()
-        for i in range(len(X)) :
-            if (i not in indexTest) :
-                indexApp.append(i)
-        indexApp = np.array(indexApp)
+    # Xapp
+    Xapp = X[indexApp]
         
-        # Xapp
-        Xapp = X[indexApp]
+    # Yapp
+    Yapp = Y[indexApp]
         
-        # Yapp
-        Yapp = Y[indexApp]
+    # Xtest
+    Xtest = X[indexTest]
         
-        # Xtest
-        Xtest = X[indexTest]
-        
-        # Ytest
-        Ytest = Y[indexTest]
-        
-        if (k == iteration) :
-            # Si il s'agit de l'itération souhaitée, on renvoie les données
-            break
+    # Ytest
+    Ytest = Y[indexTest]
     
     # On retourne les données
     return Xapp, Yapp, Xtest, Ytest
 
 # ------------------------ 
 # code de la validation croisée stratifiée
-
 def crossval_strat(X, Y, n_iterations, iteration):
+    # Nombre de labels différents
+    labels = np.unique(Y)
     
-    # On itere sur n_iterations
-    for k in range(0, n_iterations) :
+    # On sépare la liste des descriptions et label en nb_labels liste
+    # Création de la liste
+    liste_classe_desc = []
+    liste_classe_label = []
+    for l in labels :
+        liste_classe_desc.append(X[Y == l])
+        liste_classe_label.append(Y[Y == l])
         
-        # Repartition et indice
-        midEff = (int)(len(X) / 2) # Marche mieux lorsque la taille des données est paire
-        repEff = (int)(midEff / n_iterations)
-        
-        # Création des index de test
-        indexTest1 = np.asarray([i for i in range(repEff * k, repEff * (k + 1))])
-        indexTest2 = np.asarray([(i + midEff) for i in range(repEff * k, repEff * (k + 1))])
-        
-        # Création des index d'apprentissage
-        indexApp1 = list()
-        indexApp2 = list()
-         
-        for i in range(0, len(X)) :
-            if (i < midEff) :
-                if (i not in indexTest1) :
-                    indexApp1.append(i)
-            else :
-                if (i not in indexTest2) :
-                    indexApp2.append(i)
-                    
-        indexApp1 = np.array(indexApp1)
-        indexApp2 = np.array(indexApp2)
-        
-        # Concaténation des indices
-        indexApp = np.concatenate((indexApp1, indexApp2))
-        indexTest = np.concatenate((indexTest1, indexTest2))
-        
-        
-        # Xapp
-        Xapp = X[indexApp]
-        
-        # Yapp
-        Yapp = Y[indexApp]
-        
-        # Xtest
-        Xtest = X[indexTest]
-        
-        # Ytest
-        Ytest = Y[indexTest]
-        
-        if (k == iteration) :
-            # Si il s'agit de l'itération souhaitée, on renvoie les données
-            break
+    # Création des valeurs de retour
+    dim = X.shape[1]
+    Xapp = np.array([]).reshape(0, dim)
+    Yapp = np.array([])
+    Xtest = np.array([]).reshape(0, dim)
+    Ytest = np.array([])
     
-    # On retourne les données
+    # Remplissage des valeurs de retour
+    for i in range(len(liste_classe_desc)) :
+        # On récupère grace au crossval normal les valeurs de test et d'apprentissage en fonction de l'itération
+        XappL, YappL, XtestL, YtestL = crossval(liste_classe_desc[i], liste_classe_label[i], n_iterations, iteration)
+        
+        # On rassemble les valeurs (stack pour les descriptions, concatenate pour les labels)
+        Xapp = np.vstack((Xapp, XappL))
+        Yapp = np.concatenate((Yapp, YappL))
+        Xtest = np.vstack((Xtest, XtestL))
+        Ytest = np.concatenate((Ytest, YtestL))
+        
+    # Retour des valeurs
     return Xapp, Yapp, Xtest, Ytest
+        
+        
+        
+        
+        
+    

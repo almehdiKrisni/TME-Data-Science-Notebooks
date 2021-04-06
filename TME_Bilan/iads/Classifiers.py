@@ -91,8 +91,7 @@ class ClassifierLineaireRandom(Classifier):
             desc_set: ndarray avec des descriptions
             label_set: ndarray avec les labels correspondants
             Hypothèse: desc_set et label_set ont le même nombre de lignes
-        """        
-        print("Pas d'apprentissage pour ce classifieur")
+        """
     
     def score(self,x):
         """ rend le score de prédiction sur x (valeur réelle)
@@ -395,7 +394,7 @@ class ClassifierADALINE(Classifier):
             Hypothèse: desc_set et label_set ont le même nombre de lignes
         """     
         # On initialise un w random et on régle la variable wPast
-        self.w = np.random.uniform(-1, 1, (1, 2))
+        self.w = np.random.uniform(-1, 1, (1, self.input_dimension))
         wPast = self.w
         
         # On effectue la boucle
@@ -406,7 +405,7 @@ class ClassifierADALINE(Classifier):
             
             # Calcul du gradient
             # On sépare les calculs pour plus de lisibilité
-            trans = desc_set[i].reshape(2, 1)
+            trans = desc_set[i].reshape(self.input_dimension, 1)
             temp = np.dot(self.w, desc_set[i]) - label_set[i]
             grad = np.dot(trans, temp)
             
@@ -434,10 +433,10 @@ class ClassifierADALINE(Classifier):
             x: une description
         """
         # Retour de la prediction
-        if (self.score(x) < 0) :
-            return -1
-        else :
+        if (self.score(x) > 0) :
             return 1
+        else :
+            return -1
         
     def getW(self) :
         return self.w
