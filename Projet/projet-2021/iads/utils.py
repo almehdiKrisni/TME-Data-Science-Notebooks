@@ -23,7 +23,9 @@ Année: LU3IN026 - semestre 2 - 2020-2021, Sorbonne Université
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib as mpl # Pour les couleurs lors du multi-classe
+import matplotlib as mpl # Pour les couleurs en multi-classe
+import math as mt
+import random as rd
 
 # ------------------------ 
 # Ensemble des fonctions de plot de données
@@ -226,3 +228,160 @@ def crossval_strat(X, Y, n_iterations, iteration):
         
     # Retour des valeurs
     return Xapp, Yapp, Xtest, Ytest
+
+# -----------------------
+# fonctions liées à l'algorithme k-means
+
+# Fonction normalisant les données
+def normalisation(A) :
+    # On renvoie l'array A normalisé
+    return np.asarray([((A[i] - A.min(axis=0)) / (A.max(axis=0) - A.min(axis=0))) for i in range(len(A))])
+
+# Fonction retournant la distance vectorielle entre deux points
+def dist_vect(p1, p2) :
+    # Renvoie la distance vectorielle entre les points p1 et p2
+    return np.linalg.norm(p1 - p2)
+
+# Fonction retournant le centroide d'un ensemble de point
+def centroide(desc) :
+    # Renvoie le centroide (sous forme d'array) d'un ensemble d'exemples (un cluster)
+    return np.asarray([np.mean(desc[:,i]) for i in range(len(desc[0]))])
+
+# Fonction retournant l'inertie d'un cluster
+def inertie_cluster(desc) :
+    # Renvoie la valeur de l'inertie de l'ensemble
+    
+    # Calcul du centroide des exemples
+    centre = centroide(desc)
+    
+    # Calcul de l'inertie du cluster
+    # for i in range(len(desc)) :
+    #   print("centre:", centre, "\tExemple:", desc[i], "\tdistance =", mt.pow(np.linalg.norm(centre - desc[i]), 2))
+    return sum([mt.pow(np.linalg.norm(desc[i] - centre), 2) for i in range(len(desc))])
+
+# Fonction réalisant la selection des centroides initiaux
+def initialisation(K, desc) :
+    # On renvoie K exemples tirés aléatoirements
+    selection = []
+    
+    while (len(selection) < K) :
+        val = rd.randint(0, len(desc) - 1)
+        if val not in selection :
+            selection.append(val)
+    
+    return desc[selection]
+
+# Fonction retournant l'indice du centroide le plus proche d'un point parmi une liste de centroides
+def plus_proche(exemple, centroides) :
+    # On cherche l'indice du centroide le plus proche
+    indice = 0
+    
+    # On parcourt les differents centroides afin de trouver le plus proche
+    for i in range(len(centroides)) :
+        if (np.linalg.norm(exemple - centroides[i]) < np.linalg.norm(exemple - centroides[indice])) :
+            indice = i
+            
+    return indice
+
+# Fonction retournant la matrice d'affectation aux clusters des points
+def affecte_cluster(desc, centroides) :
+    # On renvoie la matrice d'affectation des exemples aux clusters
+    
+    # Préparation de la matrice
+    matrice = dict()
+    for k in range(len(centroides)) :
+        matrice[k] = list()
+        
+    # On parcout l'ensemble des exemples et on append au cluster correspondant
+    for i in range(len(desc)) :
+        indice = plus_proche(desc[i], centroides)
+        matrice[indice].append(i)
+        
+    # On convertit en nparray les données
+    for k in range(len(centroides)) :
+        matrice[k] = np.array(matrice[k])
+        
+    # On renvoie la matrice
+    return matrice
+
+# Fonction permettant la mise à jour des centroides des clusters
+def nouveaux_centroides(desc, matrice) :
+    # On renvoie la position des nouveaux centroides
+    new_centroides = list()
+    
+    # On parcourt les points liés à chaque centroide
+    for k in matrice.keys() :
+        if (matrice[k] != []) :
+            liste = matrice[k]
+            new_centroides.append(centroide(desc[matrice[k]]))
+        
+    # On renvoie les nouveaux centroides
+    return new_centroides
+
+# Fonction retournant l'inertie globale d'une partition
+def inertie_globale(desc, matrice) :
+    # On renvoie l'inertie globale d'une base de données
+    in_glb = 0
+
+    # On parcourt la matrice d'affectation
+    for i in matrice.keys() :
+        if (matrice[i] != []) : # On vérifie que le cluster est lié à au moins un point
+            in_glb += inertie_cluster(desc[matrice[i]])
+        
+    return in_glb
+
+# Fonction réalisant l'algorithme des K-moyennes (K-means)
+def kmoyennes(K, desc, epsilon=0.01, iter_max=1000) :
+    # On renvoie un ensemble de centroides et une matrice d'affectation
+    
+    # On initialise les K centroides
+    centroides = initialisation(K, desc)
+    
+    # On affecte les données à un cluster
+    affect = affecte_cluster(desc, centroides)
+    
+    # Historique des inerties globales
+    # print("Iteration 0\tInertie :", inertie_globale(desc, affect))
+    histo_inertie_glb = [inertie_globale(desc, affect)]
+    
+    for i in range(1, iter_max) :
+        # Recalcul des centroides
+        centroides = nouveaux_centroides(desc, affect)
+        
+        # Nouvelle affectation
+        affect = affecte_cluster(desc, centroides)
+        
+        # Calcul de la nouvelle inertie globale
+        histo_inertie_glb.append(inertie_globale(desc, affect))
+        
+        # Affichage de la situation
+        difference = mt.sqrt(mt.pow(histo_inertie_glb[i] - histo_inertie_glb[i - 1], 2))
+        # print("Iteration", i, "\tInertie :", histo_inertie_glb[i], "\tDifference :", difference)
+        
+        # Vérification de epsilon
+        if (difference < epsilon) :
+            # print("\nSortie de l'algorithme - Difference des inerties inférieure à epsilon\n")
+            return centroides, affect
+        
+    # print("\nSortie de l'algortihme - Nombre d'itérations maximal dépassé\n")
+    return centroides, affect
+
+# Affiche le résultat graphique de l'algorithme k-moyennes
+def affiche_resultat(data, centroides, affectation) : 
+    # On plot chaque cluster d'une couleur différente
+    for i in range(len(centroides)) :
+        # On génère une couleur aléatoire
+        r = rd.random()
+        b = rd.random()
+        g = rd.random()
+        c = (r, b, g)
+        
+        # On récupère les points
+        data_norm = data[affectation[i]]
+        
+        # On plot le cluster
+        plt.scatter(data_norm[:,0], data_norm[:,1], color=c)
+        
+    # On plot en croix rouges les centroides
+    centroides = np.array(centroides)
+    plt.scatter(centroides[:,0], centroides[:,1], color='r', marker='x')
